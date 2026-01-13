@@ -2,14 +2,14 @@
   "name": "uptime-status",
   "version": "1.0.0",
   "private": true,
-  "author": "JLinmr",
-  "url": "https://www.bsgun.cn",
-  "email": "ruoms@qq.com",
+  "author": "lvcdy",
+  "url": "https://blog.lvcdy.cn",
+  "email": "243457263@qq.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JLinmr/Uptime-Status"
+    "url": "https://github.com/lvcdy/Uptime-Status"
   },
-  "repositoryUrl": "https://github.com/JLinmr/Uptime-Status",
+  "repositoryUrl": "https://github.com/lvcdy/Uptime-Status",
   "type": "module",
   "scripts": {
     "dev": "vite",
