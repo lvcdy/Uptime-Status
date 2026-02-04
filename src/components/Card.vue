@@ -304,7 +304,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { format } from 'date-fns'
 import { Icon } from '@iconify/vue'
 import { Scatter, Line } from 'vue-chartjs'
 import {
@@ -323,6 +322,26 @@ import {
   getResponseTimeChartData, 
   responseTimeChartOptions 
 } from '@/utils/chartConfig'
+import {
+  formatResponseTime,
+  formatUptime,
+  formatDuration,
+  formatDateTime
+} from '@/utils/formatters'
+import {
+  getStatusClasses,
+  getMonitorType,
+  getErrorMessage
+} from '@/utils/statusHelpers'
+import {
+  getDowntimeStats,
+  getDowntimeLogs,
+  getValidDays,
+  openUrl,
+  generateDateRange,
+  sortMonitors
+} from '@/utils/monitorHelpers'
+import { MONITOR_STATUS, STATUS_CONFIG } from '@/constants/status'
 
 // 注册 Chart.js 组件
 ChartJS.register(
@@ -341,244 +360,31 @@ const props = defineProps({
   error: String
 })
 
-/**
- * 排序监控列表
- */
-const sortedMonitors = computed(() => {
-  if (!props.monitors) return []
-  return [...props.monitors].sort((a, b) => {
-    // 如果状态相同，保持原有顺序
-    if (a.status === b.status) return 0
-    // 将离线状态(9)排到最后
-    if (a.status === 9) return 1
-    if (b.status === 9) return -1
-    // 其他状态保持原有顺序
-    return 0
-  })
-})
+// 排序监控列表
+const sortedMonitors = computed(() => sortMonitors(props.monitors))
 
-/**
- * 状态常量定义
- */
-const STATUS = {
-  ONLINE: 2,    // 在线状态
-  PAUSED: 0,    // 暂停状态
-  PREPARING: 1, // 准备中状态
-  OFFLINE: 9    // 离线状态
-}
-
-/**
- * 状态配置映射
- */
-const STATUS_CONFIG = {
-  2: { 
-    text: '在线', color: 'green',
-    classes: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-  },
-  0: {
-    text: '暂停', color: 'yellow', 
-    classes: 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-  },
-  1: {
-    text: '准备中', color: 'yellow',
-    classes: 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-  },
-  9: {
-    text: '离线', color: 'red',
-    classes: 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-  }
-}
-
-/**
- * 格式化工具函数
- */
+// 格式化工具函数对象
 const formatters = {
-  /** 格式化响应时间 */
-  responseTime: time => `${Math.round(time || 0)} ms`,
-  /** 格式化运行时间 */
-  uptime: uptime => `${Number(uptime || 0).toFixed(2)}%`,
-  /** 格式化持续时间 */
-  duration: seconds => {
-    if (!seconds) return '0秒'
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    
-    // 如果超过100小时，只显示小时
-    if (h >= 100) {
-      return `约${h}小时`
-    }
-    
-    return [
-      h && `${h}小时`,
-      m && `${m}分钟`, 
-      (!h && !m && s) && `${s}秒`
-    ].filter(Boolean).join('')
-  },
-  /** 格式化日期时间 */
-  dateTime: ts => format(new Date(ts * 1000), 'MM-dd HH:mm')
+  responseTime: formatResponseTime,
+  uptime: formatUptime,
+  duration: formatDuration,
+  dateTime: formatDateTime
 }
 
-/**
- * 获取状态对应的样式类
- */
-const getStatusClasses = computed(() => (status) => {
-  return {
-    dot: {
-      'bg-green-500 dark:bg-green-400': status === STATUS.ONLINE,
-      'bg-yellow-500 dark:bg-yellow-400': status === STATUS.PAUSED || status === STATUS.PREPARING,
-      'bg-red-500 dark:bg-red-400': status === STATUS.OFFLINE
-    },
-    dotPing: {
-      'bg-green-500 dark:bg-green-400': status === STATUS.ONLINE,
-      'bg-yellow-500 dark:bg-yellow-400': status === STATUS.PAUSED || status === STATUS.PREPARING,
-      'bg-red-500 dark:bg-red-400': status === STATUS.OFFLINE
-    },
-    text: {
-      'text-green-500': status === STATUS.ONLINE,
-      'text-yellow-500': status === STATUS.PAUSED || status === STATUS.PREPARING,
-      'text-red-500': status === STATUS.OFFLINE
-    },
-    hover: {
-      text: {
-        'hover:text-green-600 dark:hover:text-green-300': status === STATUS.ONLINE,
-        'hover:text-yellow-600 dark:hover:text-yellow-300': status === STATUS.PAUSED || status === STATUS.PREPARING,
-        'hover:text-red-600 dark:hover:text-red-300': status === STATUS.OFFLINE
-      },
-      bg: {
-        'hover:bg-green-50 dark:hover:bg-green-900/30': status === STATUS.ONLINE,
-        'hover:bg-yellow-50 dark:hover:bg-yellow-900/30': status === STATUS.PAUSED || status === STATUS.PREPARING,
-        'hover:bg-red-50 dark:hover:bg-red-900/30': status === STATUS.OFFLINE
-      }
-    }
-  }
-})
-
-/**
- * 监控类型映射
- */
-const monitorTypeMap = {
-  1: 'HTTPS',
-  2: 'Keyword',
-  3: 'PING',
-  4: 'Port',
-  default: 'HTTP'
-}
-
-/**
- * 获取监控类型
- */
-const getMonitorType = computed(() => (monitor) => {
-  return monitorTypeMap[monitor.type] || monitorTypeMap.default
-})
-
-/**
- * 错误消息映射
- */
-const ERROR_MESSAGES = {
-  333333: '连接超时',
-  444444: '无响应',
-  100001: 'DNS解析失败',
-  98: '离线状态',
-  99: '失联状态',
-  default: '连接异常'
-}
-
-/**
- * 获取错误消息
- */
-const getErrorMessage = computed(() => (code) => {
-  const errorCode = typeof code === 'object' ? code.code : code
-  return ERROR_MESSAGES[errorCode] || ERROR_MESSAGES.default
-})
-
-/**
- * 获取宕机统计信息
- */
-const getDowntimeStats = computed(() => (monitor) => {
-  const downtimeLogs = monitor.stats?.downtimeLogs || []
-  const downtimeCount = downtimeLogs.length
-  const totalDowntime = formatters.duration(monitor.stats?.totalDowntime)
-  const validDays = getValidDays(monitor)
-
-  if (validDays <= 0) return '暂无数据'
-  
-  if (downtimeCount > 0 || monitor.status === STATUS.OFFLINE) {
-    if (downtimeCount > 0) {
-      return `最近${validDays}天 ${downtimeCount} 次故障，总计${totalDowntime}`
-    }
-    return '当前离线'
-  }
-  return `最近${validDays}天运行正常`
-})
-
-/**
- * 响应式状态
- */
+// 响应式状态
 const showDowntimeList = ref(null)
 const showResponseTimeModal = ref(false)
 const selectedMonitor = ref(null)
 const isMobile = ref(window.innerWidth < 768)
+const modalMounted = ref(false)
 
-/**
- * URL 处理函数
- */
-const openUrl = (url) => {
-  if (!url) return
-  const finalUrl = !url.startsWith('http://') && !url.startsWith('https://')
-    ? 'http://' + url
-    : url
-  window.open(finalUrl, '_blank', 'noopener,noreferrer')
-}
+// 日期范围
+const dateRange = computed(() => generateDateRange())
 
-/**
- * 图表相关配置
- */
-const dateRange = computed(() => {
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  const dates = Array.from({ length: 30 }, (_, i) => {
-    const date = new Date(now)
-    date.setDate(date.getDate() - (29 - i))
-    return date
-  })
-  return { startDate: dates[0], dates }
-})
-
-/**
- * 宕机日志获取
- */
-const getDowntimeLogs = (monitor) => (monitor.stats?.downtimeLogs || []).slice(0, 15)
-
-/**
- * 计算有效监控天数
- */
-const getValidDays = monitor => {
-  if (!monitor.stats?.dailyUptimes) return 0
-  
-  // 添加时间验证逻辑
-  const createTime = monitor.create_datetime * 1000
-  const now = Date.now()
-  const effectiveCreateTime = createTime > now ? now : createTime
-  
-  const daysSinceStart = Math.max(0, Math.floor(
-    (new Date(effectiveCreateTime) - dateRange.value.startDate) / 86400000
-  ))
-  
-  return monitor.stats.dailyUptimes
-    .slice(daysSinceStart)
-    .filter(v => v != null && !isNaN(v))
-    .length
-}
-
-/**
- * 获取图表配置
- */
+// 获取图表配置
 const getChartConfig = (monitor) => getStatusChartConfig(monitor, dateRange.value, isMobile.value)
 
-/**
- * 事件监听
- */
+// 事件监听
 const closeOnClickOutside = (e) => {
   if (showDowntimeList.value) {
     const path = e.composedPath()
@@ -595,11 +401,6 @@ const closeOnClickOutside = (e) => {
 const toggleDowntimeList = (id) => {
   showDowntimeList.value = showDowntimeList.value === id ? null : id
 }
-
-/**
- * 控制模态框挂载状态
- */
-const modalMounted = ref(false)
 
 // 打开模态框
 const openResponseTimeModal = (monitor) => {
@@ -618,14 +419,10 @@ const onAfterLeave = () => {
   modalMounted.value = false
 }
 
-/**
- * 更新移动端状态
- */
+// 更新移动端状态
 const updateMobileState = () => isMobile.value = window.innerWidth < 768
 
-/**
- * 生命周期钩子
- */
+// 生命周期钩子
 onMounted(() => {
   document.addEventListener('click', closeOnClickOutside)
   window.addEventListener('resize', updateMobileState)

@@ -83,4 +83,10 @@ onMounted(() => {
   initTheme()
   refreshData()
 })
+
+onUnmounted(() => {
+  // 清理资源
+  monitors.value = []
+  errorMessage.value = ''
+})
 </script>

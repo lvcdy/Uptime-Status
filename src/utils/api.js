@@ -42,23 +42,31 @@ export const fetchMonitorData = async () => {
     )
 
     if (response.data?.stat !== 'ok') {
-      throw new Error('API 请求失败: ' + response.data?.message || '未知错误')
+      throw new Error(response.data?.message || 'API 请求失败')
     }
 
-    if (STATUS_SORT === 'friendly_name') {
-      return response.data.monitors
-      .sort((a, b) => b.friendly_name - a.friendly_name)
-      .map(processMonitorData)
-    } else if (STATUS_SORT === 'create_datetime') {
-      return response.data.monitors
-      .sort((a, b) => b.create_datetime - a.create_datetime)
-      .map(processMonitorData)
-    }
-
+    const monitors = response.data.monitors || []
+    const sortedMonitors = sortMonitors(monitors)
+    return sortedMonitors.map(processMonitorData)
   } catch (error) {
     console.error('获取监控数据失败:', error)
     throw new Error('获取监控数据失败: ' + error.message)
   } finally {
     clearTimeout(timeoutId)
   }
+}
+
+/**
+ * 对监控数据进行排序
+ * @param {Array} monitors - 监控数据数组
+ * @returns {Array} 排序后的监控数据
+ */
+const sortMonitors = (monitors) => {
+  if (STATUS_SORT === 'friendly_name') {
+    return [...monitors].sort((a, b) => a.friendly_name.localeCompare(b.friendly_name))
+  }
+  if (STATUS_SORT === 'create_datetime') {
+    return [...monitors].sort((a, b) => b.create_datetime - a.create_datetime)
+  }
+  return monitors
 }

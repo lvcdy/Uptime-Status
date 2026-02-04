@@ -34,6 +34,7 @@
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
+import { MONITOR_STATUS } from '@/constants/status'
 
 const props = defineProps({
   monitors: {
@@ -42,24 +43,26 @@ const props = defineProps({
   }
 })
 
-/**
- * 计算网站总数
- */
+const displayValues = ref([0, 0, 0, 0])
+
+// 计算网站总数
 const total = computed(() => props.monitors.length)
 
-/**
- * 计算正常网站数
- */
-const normal = computed(() => props.monitors.filter(m => m.status === 2 || m.status === 1).length)
+// 计算正常网站数
+const normal = computed(() => 
+  props.monitors.filter(m => m.status === MONITOR_STATUS.ONLINE || m.status === MONITOR_STATUS.PREPARING).length
+)
 
-/**
- * 计算异常网站数
- */
-const abnormal = computed(() => props.monitors.filter(m => m.status === 9 || m.status === 0).length)
+// 计算异常网站数
+const abnormal = computed(() => 
+  props.monitors.filter(m => m.status === MONITOR_STATUS.OFFLINE || m.status === MONITOR_STATUS.PAUSED).length
+)
+
+// 计算平均响应时间
 const avgResponse = computed(() => {
   if (!props.monitors?.length) return 0
   const onlineMonitors = props.monitors.filter(m => 
-    m.status === 2 && m.stats?.avgResponseTime > 0
+    m.status === MONITOR_STATUS.ONLINE && m.stats?.avgResponseTime > 0
   )
   if (!onlineMonitors.length) return 0
   return Math.round(
@@ -67,22 +70,13 @@ const avgResponse = computed(() => {
   )
 })
 
-/**
- * 显示值
- */
-const displayValues = ref([0, 0, 0, 0])
-
-/**
- * 动画值
- */
+// 动画值更新
 const animateValue = (start, end, duration, index) => {
   const startTime = performance.now()
   const updateValue = (currentTime) => {
     const elapsed = currentTime - startTime
     const progress = Math.min(elapsed / duration, 1)
-    
     displayValues.value[index] = Math.floor(start + (end - start) * progress)
-
     if (progress < 1) {
       requestAnimationFrame(updateValue)
     }
@@ -90,9 +84,7 @@ const animateValue = (start, end, duration, index) => {
   requestAnimationFrame(updateValue)
 }
 
-/**
- * 概览项
- */
+// 概览项配置
 const overviewItems = computed(() => [
   {
     label: '监控网站',
@@ -129,21 +121,21 @@ const overviewItems = computed(() => [
   }
 ])
 
-/**
- * 监听每个值的变化
- */
-watch(() => overviewItems.value.map(item => item.value), (newValues, oldValues) => {
-  newValues.forEach((newVal, index) => {
-    const oldVal = oldValues?.[index] ?? 0
-    if (newVal !== oldVal) {
-      animateValue(oldVal, newVal, 1000, index)
-    }
-  })
-}, { immediate: true })
+// 监听值变化
+watch(
+  () => overviewItems.value.map(item => item.value),
+  (newValues, oldValues) => {
+    newValues.forEach((newVal, index) => {
+      const oldVal = oldValues?.[index] ?? 0
+      if (newVal !== oldVal) {
+        animateValue(oldVal, newVal, 1000, index)
+      }
+    })
+  },
+  { immediate: true }
+)
 
-/**
- * 组件挂载时启动动画
- */
+// 挂载时启动动画
 onMounted(() => {
   overviewItems.value.forEach((item, index) => {
     animateValue(0, item.value, 1000, index)

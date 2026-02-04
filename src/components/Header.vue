@@ -59,12 +59,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
-
-const formatTime = (seconds) => {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
+import { REFRESH_INTERVAL } from '@/constants/status'
 
 const props = defineProps({
   title: {
@@ -83,18 +78,17 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'toggle-theme'])
 
-/**
- * 刷新间隔
- */
-const REFRESH_INTERVAL = 300 // 5分钟 = 300秒
 const countdown = ref(REFRESH_INTERVAL)
 let timer = null
 
-/**
- * 启动计时器
- */
+const formatTime = (seconds) => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
 const startTimer = () => {
-  clearInterval(timer) // 确保只有一个计时器在运行
+  clearInterval(timer)
   countdown.value = REFRESH_INTERVAL
   timer = setInterval(() => {
     if (!props.isRefreshing && countdown.value > 0) {
@@ -107,14 +101,11 @@ const startTimer = () => {
   }, 1000)
 }
 
-/**
- * 刷新数据
- */
-const refreshData = () => (emit('refresh'), countdown.value = REFRESH_INTERVAL)
+const refreshData = () => {
+  emit('refresh')
+  countdown.value = REFRESH_INTERVAL
+}
 
-/**
- * 切换主题
- */
 const toggleTheme = () => {
   emit('toggle-theme')
 }
