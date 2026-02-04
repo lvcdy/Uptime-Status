@@ -24,22 +24,22 @@ export const formatUptime = (uptime) => `${Number(uptime || 0).toFixed(2)}%`
  * @returns {string} 格式化的持续时间
  */
 export const formatDuration = (seconds) => {
-  if (!seconds) return '0秒'
-  
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = seconds % 60
-  
-  // 如果超过100小时，只显示小时
-  if (h >= 100) {
-    return `约${h}小时`
-  }
-  
-  return [
-    h && `${h}小时`,
-    m && `${m}分钟`,
-    (!h && !m && s) && `${s}秒`
-  ].filter(Boolean).join('')
+    if (!seconds) return '0秒'
+
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+
+    // 如果超过100小时，只显示小时
+    if (h >= 100) {
+        return `约${h}小时`
+    }
+
+    return [
+        h && `${h}小时`,
+        m && `${m}分钟`,
+        (!h && !m && s) && `${s}秒`
+    ].filter(Boolean).join('')
 }
 
 /**
