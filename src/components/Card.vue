@@ -32,11 +32,7 @@
     <div v-for="monitor in sortedMonitors" 
          :key="monitor.id"
          class="card-base animated-border p-6 rounded-2xl backdrop-blur-sm animate-fade"
-         :class="[
-           monitor.status === 0 || monitor.status === 1 
-             ? 'after:border-yellow-500/50 dark:after:border-yellow-400/50'
-             : `after:border-${STATUS_CONFIG[monitor.status]?.color}-500/50 dark:after:border-${STATUS_CONFIG[monitor.status]?.color}-400/50`
-         ]"
+         :class="getCardBorderClass(monitor.status)"
          @mouseenter="$event.target.classList.add('hovered')"
     >
       <!-- 卡片头部：标题和状态指示器 -->
@@ -330,6 +326,7 @@ import {
 } from '@/utils/formatters'
 import {
   getStatusClasses,
+  getCardBorderClass,
   getMonitorType,
   getErrorMessage
 } from '@/utils/statusHelpers'

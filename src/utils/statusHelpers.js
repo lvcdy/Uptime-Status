@@ -10,34 +10,62 @@ import { MONITOR_STATUS } from '@/constants/status'
  * @returns {Object} 包含样式类的对象
  */
 export const getStatusClasses = (status) => {
-    const statusColorMap = {
-        [MONITOR_STATUS.ONLINE]: 'green',
-        [MONITOR_STATUS.PAUSED]: 'yellow',
-        [MONITOR_STATUS.PREPARING]: 'yellow',
-        [MONITOR_STATUS.OFFLINE]: 'red'
-    }
-
-    const color = statusColorMap[status] || 'gray'
-
-    return {
-        dot: {
-            [`bg-${color}-500 dark:bg-${color}-400`]: true
+    const statusConfigMap = {
+        [MONITOR_STATUS.ONLINE]: {
+            dot: 'bg-green-500 dark:bg-green-400',
+            dotPing: 'bg-green-500 dark:bg-green-400',
+            text: 'text-green-500 dark:text-green-400',
+            hover: {
+                text: 'hover:text-green-600 dark:hover:text-green-300',
+                bg: 'hover:bg-green-50 dark:hover:bg-green-900/30'
+            }
         },
-        dotPing: {
-            [`bg-${color}-500 dark:bg-${color}-400`]: true
+        [MONITOR_STATUS.PAUSED]: {
+            dot: 'bg-yellow-500 dark:bg-yellow-400',
+            dotPing: 'bg-yellow-500 dark:bg-yellow-400',
+            text: 'text-yellow-500 dark:text-yellow-400',
+            hover: {
+                text: 'hover:text-yellow-600 dark:hover:text-yellow-300',
+                bg: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
+            }
         },
-        text: {
-            [`text-${color}-500`]: true
+        [MONITOR_STATUS.PREPARING]: {
+            dot: 'bg-yellow-500 dark:bg-yellow-400',
+            dotPing: 'bg-yellow-500 dark:bg-yellow-400',
+            text: 'text-yellow-500 dark:text-yellow-400',
+            hover: {
+                text: 'hover:text-yellow-600 dark:hover:text-yellow-300',
+                bg: 'hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
+            }
         },
-        hover: {
-            text: {
-                [`hover:text-${color}-600 dark:hover:text-${color}-300`]: true
-            },
-            bg: {
-                [`hover:bg-${color}-50 dark:hover:bg-${color}-900/30`]: true
+        [MONITOR_STATUS.OFFLINE]: {
+            dot: 'bg-red-500 dark:bg-red-400',
+            dotPing: 'bg-red-500 dark:bg-red-400',
+            text: 'text-red-500 dark:text-red-400',
+            hover: {
+                text: 'hover:text-red-600 dark:hover:text-red-300',
+                bg: 'hover:bg-red-50 dark:hover:bg-red-900/30'
             }
         }
     }
+
+    return statusConfigMap[status] || statusConfigMap[MONITOR_STATUS.ONLINE]
+}
+
+/**
+ * 获取卡片边框样式类
+ * @param {number} status - 监控状态
+ * @returns {string} 边框样式类
+ */
+export const getCardBorderClass = (status) => {
+    const borderClassMap = {
+        [MONITOR_STATUS.ONLINE]: 'after:border-green-500/50 dark:after:border-green-400/50',
+        [MONITOR_STATUS.PAUSED]: 'after:border-yellow-500/50 dark:after:border-yellow-400/50',
+        [MONITOR_STATUS.PREPARING]: 'after:border-yellow-500/50 dark:after:border-yellow-400/50',
+        [MONITOR_STATUS.OFFLINE]: 'after:border-red-500/50 dark:after:border-red-400/50'
+    }
+
+    return borderClassMap[status] || 'after:border-gray-500/50 dark:after:border-gray-400/50'
 }
 
 /**
